@@ -1,10 +1,12 @@
 
 import express from 'express';
 import { rateLimit } from 'express-rate-limit';
-import { GroqService } from '../services/anthropic.js';
+import { GroqService } from '../services/groq.js';
+import { AnthropicService } from '../services/anthropic.js';
 
 const router = express.Router();
 const groqService = new GroqService();
+const anthropicService = new AnthropicService();
 
 // Rate limiting middleware
 const limiter = rateLimit({
@@ -26,7 +28,7 @@ router.post('/suggestions',
   async (req, res) => {
     try {
       const { chiefComplaint, patientContext } = req.body;
-      const suggestions = await groqService.generateSuggestions(
+      const suggestions = await anthropicService.generateSuggestions(
         chiefComplaint,
         patientContext
       );

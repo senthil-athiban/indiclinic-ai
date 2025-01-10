@@ -1,50 +1,38 @@
 
-import Anthropic from '@anthropic-ai/sdk';
-
+import Groq from "groq-sdk";
 import { config } from "dotenv";
 config();
 
-export class AnthropicService {
+export class GroqService {
   constructor() {
-    this.client = new Anthropic({
-      apiKey: process.env.ANTHROPIC_API_KEY,
+    this.client = new Groq({
+      apiKey: process.env.GROQ_API_KEY,
     });
     
     // Use system prompt to define the expected response format
     this.systemPrompt = `You are a medical AI assistant helping doctors with prescriptions.
-For each chief complaint, provide comprehensive evidence-based suggestions in the following JSON format:
-{
-  "diagnoses": {
-    "primary": ["Must include at least one primary diagnosis"],
-    "secondary": ["Must include at least one secondary/differential diagnosis"]
-  },
-  "medications": [
+    For each chief complaint, provide evidence-based suggestions in the following JSON format:
     {
-      "name": "Must include full drug name",
-      "dosage": "Must specify exact dosage",
-      "duration": "Must specify exact duration",
-      "note": "Include any special instructions or warnings"
+      "diagnoses": {
+        "primary": ["diagnosis1", "diagnosis2"],
+        "secondary": ["diagnosis1", "diagnosis2"]
+      },
+      "medications": [
+        {
+          "name": "drug name",
+          "dosage": "recommended dosage",
+          "duration": "recommended duration"
+        }
+      ],
+      "investigations": ["test1", "test2"],
+      "radiology": ["imaging1", "imaging2"]
     }
-  ],
-  "investigations": [
-    "Must list all relevant laboratory tests",
-    "Must include at least basic investigative tests",
-    "Include specific test recommendations"
-  ],
-  "radiology": [
-    "Must list all relevant imaging studies",
-    "Include specific views if applicable",
-    "Include 'None required' if no imaging needed"
-  ]
-}
-
-Always provide comprehensive suggestions for all sections. If a section is not applicable, explain why in that section.
-Consider patient age, gender, and medical history when making recommendations.
-Keep suggestions evidence-based and appropriate for the presenting complaint.`;
+    Keep suggestions concise and evidence-based.`;
   }
 
   async generateSuggestions(chiefComplaint, patientContext = {}) {
     try {
+      // Create a medically-focused prompt
       const prompt = `Based on:
       Chief Complaint: ${chiefComplaint}
       Patient Age: ${patientContext.age || 'N/A'}
@@ -52,20 +40,21 @@ Keep suggestions evidence-based and appropriate for the presenting complaint.`;
       Relevant History: ${patientContext.medicalHistory || 'N/A'}
       
       Provide appropriate medical suggestions following the specified JSON format.`;
-
-
       console.log("prompt: ", prompt);
-      const response = await this.client.messages.create({
-        model: 'claude-3-sonnet-20240229',
-        max_tokens: 1024,
-        temperature: 0.3,
-        system: this.systemPrompt,
+      const response = await this.client.chat.completions.create({
         messages: [
+          {
+            role: 'system',
+            content: this.systemPrompt
+          },
           {
             role: 'user',
             content: prompt
           }
-        ]
+        ],
+        model: "mixtral-8x7b-32768",
+        temperature: 0.3,
+        max_tokens: 1024
       });
       console.log("response : ", response);
       return this.parseAndValidateResponse(response);
@@ -77,7 +66,7 @@ Keep suggestions evidence-based and appropriate for the presenting complaint.`;
 
   parseAndValidateResponse(response) {
     try {
-      const content = response.content[0].text;
+      const content = response.choices[0].message.content;
       const suggestions = JSON.parse(content);
       
       // Validate required fields
