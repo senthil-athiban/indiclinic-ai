@@ -40,4 +40,91 @@ const medicalSuggestions = {
     ]
 };
 
+export const chestSuggestion = {
+    "diagnoses": {
+        "primary": [
+            "Acute bronchitis",
+            "Upper respiratory tract infection",
+            "Influenza"
+        ],
+        "secondary": [
+            "Pneumonia",
+            "Asthma exacerbation",
+            "Allergic rhinitis"
+        ]
+    },
+    "medications": [
+        {
+            "name": "Guaifenesin",
+            "dosage": "600-1200 mg every 12 hours",
+            "duration": "5-7 days",
+            "note": "Expectorant to help loosen mucus"
+        },
+        {
+            "name": "Ibuprofen",
+            "dosage": "400-600 mg every 6-8 hours",
+            "duration": "3-5 days",
+            "note": "Anti-inflammatory for fever and body aches"
+        },
+        {
+            "name": "Dextromethorphan",
+            "dosage": "10-20 mg every 4-6 hours",
+            "duration": "3-5 days",
+            "note": "Cough suppressant if cough is severe"
+        }
+    ],
+    "investigations": {
+        "required": [
+            {
+                "category": "Blood",
+                "tests": [
+                    "Complete blood count (CBC)",
+                    "C-reactive protein (CRP)"
+                ],
+                "rationale": "To check for infection and inflammation",
+                "timing": "Routine",
+                "prerequisites": "None"
+            },
+            {
+                "category": "Respiratory",
+                "tests": [
+                    "Chest X-ray",
+                    "Pulmonary function tests"
+                ],
+                "rationale": "To rule out pneumonia and assess lung function",
+                "timing": "Routine unless severe symptoms",
+                "prerequisites": "None"
+            }
+        ],
+        "optional": [
+            {
+                "category": "Microbiology",
+                "tests": [
+                    "Sputum culture",
+                    "Influenza/Respiratory virus PCR"
+                ],
+                "conditions": "If symptoms persist or worsen after initial treatment"
+            }
+        ]
+    },
+    "radiology": {
+        "primary": [
+            {
+                "modality": "Chest X-ray",
+                "region": "Chest/Lungs",
+                "views": "Posteroanterior (PA) and lateral views",
+                "rationale": "To evaluate for pneumonia or other lung abnormalities",
+                "timing": "Routine unless severe symptoms",
+                "prerequisites": "None"
+            }
+        ],
+        "alternative": [
+            {
+                "modality": "Chest CT scan",
+                "conditions": "If X-ray is inconclusive or to evaluate complications",
+                "contraindications": "Pregnancy, high radiation exposure risk"
+            }
+        ]
+    }
+};
 export default medicalSuggestions;
