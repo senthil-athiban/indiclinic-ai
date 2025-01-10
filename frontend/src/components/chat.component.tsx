@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import medicalSuggestions from "../example";
+import { BACKEND_DOMAIN } from "../config";
 
 const Chat = () => {
   const [chiefComplaint, setChiefComplaint] = useState("");
@@ -29,14 +30,13 @@ const Chat = () => {
       },
       body: JSON.stringify(jsonData),
     };
-
     const res = await fetch(
-      `${import.meta.env.DOMAIN}/api/v1/ai/suggestions`,
+      `${BACKEND_DOMAIN}/api/v1/ai/suggestions`,
       options
     );
     const responseBody = await res.json();
     setResponse(responseBody);
-    // console.log("responseBody: ", responseBody);
+    console.log("responseBody: ", responseBody);
   };
   return (
     <div className="flex flex-col items-center justify-center my-2 top-10 gap-x-4">
