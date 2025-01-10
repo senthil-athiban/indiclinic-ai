@@ -1,10 +1,12 @@
-// services/claudeService.js
-import Anthropic from '@anthropic-ai/sdk';
 
-class ClaudeService {
+import Groq from "groq-sdk";
+import { config } from "dotenv";
+config();
+
+export class GroqService {
   constructor() {
-    this.client = new Anthropic({
-      apiKey: process.env.ANTHROPIC_API_KEY,
+    this.client = new Groq({
+      apiKey: process.env.GROQ_API_KEY,
     });
     
     // Use system prompt to define the expected response format
@@ -38,20 +40,23 @@ class ClaudeService {
       Relevant History: ${patientContext.medicalHistory || 'N/A'}
       
       Provide appropriate medical suggestions following the specified JSON format.`;
-
-      const response = await this.client.messages.create({
-        model: 'claude-3-sonnet-20240229',
-        max_tokens: 1024,
-        temperature: 0.3,
-        system: this.systemPrompt,
+      console.log("prompt: ", prompt);
+      const response = await this.client.chat.completions.create({
         messages: [
+          {
+            role: 'system',
+            content: this.systemPrompt
+          },
           {
             role: 'user',
             content: prompt
           }
-        ]
+        ],
+        model: "mixtral-8x7b-32768",
+        temperature: 0.3,
+        max_tokens: 1024
       });
-
+      console.log("response : ", response);
       return this.parseAndValidateResponse(response);
     } catch (error) {
       console.error('Claude API Error:', error);
@@ -61,7 +66,7 @@ class ClaudeService {
 
   parseAndValidateResponse(response) {
     try {
-      const content = response.content[0].text;
+      const content = response.choices[0].message.content;
       const suggestions = JSON.parse(content);
       
       // Validate required fields
@@ -69,6 +74,7 @@ class ClaudeService {
         throw new Error('Invalid response format');
       }
 
+      console.log("suggestions: ", suggestions);
       return {
         diagnoses: suggestions.diagnoses,
         medications: suggestions.medications,
@@ -80,55 +86,8 @@ class ClaudeService {
     }
   }
 
-  // Optional: Add response caching
-  async getCachedSuggestions(key) {
-    // Implementation with Redis or similar caching solution
-  }
+  
+  // async getCachedSuggestions(key) {
+  //   // Implementation with Redis or similar caching solution
+  // }
 }
-
-// routes/suggestionRoutes.js
-import express from 'express';
-import { ClaudeService } from '../services/claudeService.js';
-import { rateLimit } from 'express-rate-limit';
-
-const router = express.Router();
-const claudeService = new ClaudeService();
-
-// Rate limiting middleware
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per window
-  message: 'Too many requests from this IP, please try again later'
-});
-
-// Validation middleware
-const validateSuggestionRequest = (req, res, next) => {
-  const { chiefComplaint } = req.body;
-  if (!chiefComplaint?.trim()) {
-    return res.status(400).json({ error: 'Chief complaint is required' });
-  }
-  next();
-};
-
-router.post('/suggestions', 
-  limiter,
-  validateSuggestionRequest,
-  async (req, res) => {
-    try {
-      const { chiefComplaint, patientContext } = req.body;
-      const suggestions = await claudeService.generateSuggestions(
-        chiefComplaint,
-        patientContext
-      );
-      res.json(suggestions);
-    } catch (error) {
-      console.error('Suggestion Error:', error);
-      res.status(500).json({ 
-        error: 'Failed to generate suggestions',
-        details: error.message 
-      });
-    }
-  }
-);
-
-export default router;
