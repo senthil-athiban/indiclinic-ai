@@ -1,4 +1,4 @@
-
+import { StreamingTextResponse, AnthropicStream } from 'ai';
 import Anthropic from '@anthropic-ai/sdk';
 
 import { config } from "dotenv";
@@ -115,10 +115,64 @@ export class AnthropicService {
             role: 'user',
             content: prompt
           }
-        ]
+        ],
+        stream: true
       });
-      console.log("response : ", response);
-      return this.parseAndValidateResponse(response);
+      
+      let accumulatedJson = '';
+      
+      // Create transform stream to accumulate and validate JSON
+      const jsonTransform = new TransformStream({
+        transform(chunk, controller) {
+          console.log('chunk: ', chunk);
+          try {
+            // Accumulate the text
+            accumulatedJson += chunk.text;
+            
+            // Try to parse the accumulated JSON
+            try {
+              JSON.parse(accumulatedJson);
+              // If valid JSON, send the chunk
+              controller.enqueue(new TextEncoder().encode(chunk.text));
+            } catch (e) {
+              // If invalid JSON, just send the chunk without parsing
+              controller.enqueue(new TextEncoder().encode(chunk.text));
+            }
+          } catch (error) {
+            console.error('Transform error:', error);
+            controller.error(error);
+          }
+        },
+        flush(controller) {
+          try {
+            // Final validation of complete response
+            const finalJson = JSON.parse(accumulatedJson);
+            if (!finalJson.diagnoses || !finalJson.medications) {
+              throw new Error('Invalid response structure');
+            }
+          } catch (error) {
+            console.error('Flush error:', error);
+            controller.error(error);
+          }
+        }
+      });
+
+      // Create and transform the stream
+      const stream = AnthropicStream(response);
+      console.log('stream: ', stream);
+
+      const transformedStream = stream.pipeThrough(jsonTransform);
+      console.log('transformedStream: ', transformedStream);
+      // Return the transformed stream with appropriate headers
+      return new Response(transformedStream, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Transfer-Encoding': 'chunked'
+        }
+      });
+      
+      
+      // return this.parseAndValidateResponse(response);
     } catch (error) {
       console.error('Claude API Error:', error);
       throw new Error('Failed to generate medical suggestions');
