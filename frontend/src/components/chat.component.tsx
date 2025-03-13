@@ -7,9 +7,10 @@ const Chat = () => {
   const [patientAge, setPatientAge] = useState(0);
   const [patientMedicalHistory, setPatientMedicalHistory] = useState("");
   const [patientGender, setPatientGender] = useState("");
-  const [response, setResponse] = useState(chestSuggestion);
+  const [response, setResponse] = useState<any>();
+  const [complaint, setComplaint] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-  console.log("response: ", response);
   const onSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
 
@@ -30,17 +31,44 @@ const Chat = () => {
       },
       body: JSON.stringify(jsonData),
     };
-    const res = await fetch(`${BACKEND_DOMAIN}/api/v1/ai/suggestions`, options);
-    const responseBody = await res.json();
-    setResponse(responseBody);
-    console.log("responseBody: ", responseBody);
+    setIsLoading(true);
+    try {
+      const res = await fetch(`${BACKEND_DOMAIN}/api/v1/ai/suggestions`, options);
+      // const responseBody = res.body?.getReader();
+      const reader = res.body?.getReader();
+      console.log('reader: ', reader);
+      let result = '';
+
+      while (true) {
+        const { done, value } = await reader!.read();
+        if (done) break;
+        result += new TextDecoder().decode(value);
+        
+        try {
+          // Try to parse accumulated JSON
+          const parsedData = JSON.parse(result);
+          setResponse(parsedData);
+          console.log('Received data:', parsedData);
+        } catch {
+          // Continue accumulating if not valid JSON yet
+          continue;
+        }
+      }
+      
+    } catch (error) {
+      console.log("Error in fetching : ", error);
+    } finally {
+      setIsLoading(false);
+    }
   };
+  
   return (
     <div className="flex flex-col items-center justify-center my-2 top-10 gap-x-4">
       <div>
         <form onSubmit={onSubmit}>
           <div className="flex gap-x-4">
-            <input
+            <input type="text" onChange={(e) => setComplaint(e.target.value)} />
+            {/* <input
               type="text"
               placeholder="chief complaint"
               onChange={(e) => setChiefComplaint(e.target.value)}
@@ -63,7 +91,7 @@ const Chat = () => {
               placeholder="patient medication history"
               onChange={(e) => setPatientMedicalHistory(e.target.value)}
               className="border shadow-md p-2 rounded-md"
-            />
+            /> */}
           </div>
           <div className="flex justify-center my-4">
             <button
@@ -75,7 +103,10 @@ const Chat = () => {
           </div>
         </form>
       </div>
-      {response && (
+      {isLoading && (
+        <p className="text-lg">Generating.....</p>
+      )}
+      {/* {response && (
         <div id="results" className="flex flex-col gap-x-2 gap-y-4">
           <div className="flex gap-x-10">
             <div id="diagnosis" className="flex gap-x-4">
@@ -215,7 +246,7 @@ const Chat = () => {
             </div>
           </div>
         </div>
-      )}
+      )} */}
     </div>
   );
 };
