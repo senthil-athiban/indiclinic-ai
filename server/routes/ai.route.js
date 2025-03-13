@@ -43,4 +43,18 @@ router.post('/suggestions',
   }
 );
 
+router.post('/completion', 
+  async (req, res) => {
+    try {
+      const { text } = req.body;
+      const start = new Date();
+      const completions = await anthropicService.generateCompletion(text);
+      const end = new Date();
+      console.log('time taken:', end.getTime() - start.getTime());
+      res.json(completions);
+    } catch (error) {
+      console.log('Error in completions:', error);
+    }
+  }
+)
 export const aiRouter = router;

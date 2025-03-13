@@ -179,6 +179,51 @@ export class AnthropicService {
     }
   }
 
+
+  async generateCompletion (text) {
+    const systemPrompt = `You are a specialized medical AI assistant focused on helping physicians complete chief complaints accurately. 
+      Your response MUST follow this JSON format exactly:
+      {"displayText": "Fever for 2 day with status as New"}
+      Only give the suggestion word, donot include the input text in the response
+      Donot add full stop at the end, If needed Start with a white space if needed. Start with a new line if needed.
+      Only suggest four to five completion per query. Keep suggestions concise and medically precise.
+    `
+
+    const age = 21;
+    const gender = 'male';
+    const prompt = `
+    I am a doctor writing a chief complaint for a patient with the following information:
+    - Age: ${age}
+    - Gender: ${gender}
+    
+    I am currently typing: "${text}"`;
+    
+    try {
+      
+      const response = await this.client.messages.create({
+        model: 'claude-3-sonnet-20240229',
+        max_tokens: 1024,
+        temperature: 0.3,
+        system: systemPrompt,
+        messages: [
+          {
+            role: 'user',
+            content: prompt
+          }
+        ]
+      });
+
+      console.log('response:', response);
+
+      let content = response.content[0].text;
+      content = content.replace(/[\u0000-\u001F\u007F-\u009F]/g, "");
+      return JSON.parse(content);
+    } catch (error) {
+      console.error('Error parsing Claude response:', error);
+      return [];
+    }
+  }
+
   parseAndValidateResponse(response) {
     try {
       const content = response.content[0].text;
@@ -200,9 +245,4 @@ export class AnthropicService {
       throw new Error('Failed to parse Claude response');
     }
   }
-
-
-  // async getCachedSuggestions(key) {
-  //   // Implementation with Redis or similar caching solution
-  // }
 }
